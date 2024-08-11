@@ -9,12 +9,16 @@ const ImageResizer = () => {
   const [aspect, setAspect] = useState(4 / 3);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isPassportMode, setIsPassportMode] = useState(false);
+  const [is4x6Mode, setIs4x6Mode] = useState(false);
   const [removeBackground, setRemoveBackground] = useState(false);
   const [useWhiteBackground, setUseWhiteBackground] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
-  const PASSPORT_ASPECT_RATIO = 1;
-  const PASSPORT_PIXELS = 600;
+  const PASSPORT_ASPECT_RATIO = 1; // 2x2 inch aspect ratio (1:1)
+  const PASSPORT_PIXELS = 600; // 2x2 inch at 300 DPI
+
+  const FOUR_BY_SIX_ASPECT_RATIO = 2 / 3; // 4x6 inch aspect ratio (2:3)
+  const FOUR_BY_SIX_PIXELS = 1200; // 4x6 inch at 300 DPI width, height will be calculated based on aspect ratio
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -45,8 +49,16 @@ const ImageResizer = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    canvas.width = isPassportMode ? PASSPORT_PIXELS : pixelCrop.width;
-    canvas.height = isPassportMode ? PASSPORT_PIXELS : pixelCrop.height;
+    if (isPassportMode) {
+      canvas.width = PASSPORT_PIXELS;
+      canvas.height = PASSPORT_PIXELS;
+    } else if (is4x6Mode) {
+      canvas.width = FOUR_BY_SIX_PIXELS;
+      canvas.height = Math.floor(FOUR_BY_SIX_PIXELS * FOUR_BY_SIX_ASPECT_RATIO);
+    } else {
+      canvas.width = pixelCrop.width;
+      canvas.height = pixelCrop.height;
+    }
 
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -71,14 +83,12 @@ const ImageResizer = () => {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
-    
     const bgColor = {
       r: data[0],
       g: data[1],
       b: data[2],
     };
 
-    
     const threshold = 30;
 
     for (let i = 0; i < data.length; i += 4) {
@@ -86,13 +96,12 @@ const ImageResizer = () => {
       const g = data[i + 1];
       const b = data[i + 2];
 
-      
       if (
         Math.abs(r - bgColor.r) < threshold &&
         Math.abs(g - bgColor.g) < threshold &&
         Math.abs(b - bgColor.b) < threshold
       ) {
-        data[i + 3] = 0; 
+        data[i + 3] = 0;
       }
     }
 
@@ -104,7 +113,7 @@ const ImageResizer = () => {
     if (src && croppedAreaPixels) {
       try {
         let canvas = await getCroppedImg(src, croppedAreaPixels, useWhiteBackground ? 'white' : 'transparent');
-        
+
         if (removeBackground) {
           canvas = removeImageBackground(canvas);
         }
@@ -122,7 +131,7 @@ const ImageResizer = () => {
     if (processedImageUrl) {
       const link = document.createElement('a');
       link.href = processedImageUrl;
-      link.download = isPassportMode ? 'passport-photo.png' : 'cropped-image.png';
+      link.download = isPassportMode ? 'passport-photo.png' : (is4x6Mode ? '4x6-photo.png' : 'cropped-image.png');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -144,15 +153,24 @@ const ImageResizer = () => {
     setIsPassportMode(!isPassportMode);
     if (!isPassportMode) {
       setAspect(PASSPORT_ASPECT_RATIO);
+      setIs4x6Mode(false); // Disable 4x6 mode if passport mode is enabled
+    }
+  };
+
+  const toggle4x6Mode = () => {
+    setIs4x6Mode(!is4x6Mode);
+    if (!is4x6Mode) {
+      setAspect(FOUR_BY_SIX_ASPECT_RATIO);
+      setIsPassportMode(false); // Disable passport mode if 4x6 mode is enabled
     }
   };
 
   return (
     <div className="image-resizer">
-        <div className="mkb">
-            <h1>M.KABIR pic resizer</h1>
-            <p>"Please don't use the remove background and white background features because they are still in the development stage. You may use them, but they don't work properly."</p>
-        </div>
+      <div className="mkb">
+        <h1>M.KABIR pic resizer</h1>
+        <p>"Please don't use the remove background and white background features because they are still in the development stage. You may use them, but they don't work properly."</p>
+      </div>
       <input className='mkb2 custom-file-upload' type="file" accept="image/*" onChange={handleImageChange} />
       {src && (
         <div style={{ marginTop: '20px', position: 'relative', height: '400px', width: '100%' }}>
@@ -198,6 +216,16 @@ const ImageResizer = () => {
         <label>
           <input
             type="checkbox"
+            checked={is4x6Mode}
+            onChange={toggle4x6Mode}
+          />
+          4x6 Photo Mode
+        </label>
+      </div>
+      <div style={{ marginTop: '20px' }}>
+        <label>
+          <input
+            type="checkbox"
             checked={removeBackground}
             onChange={(e) => setRemoveBackground(e.target.checked)}
           />
@@ -214,11 +242,11 @@ const ImageResizer = () => {
           Use White Background
         </label>
       </div>
-      <button 
+      <button
         onClick={handleDownload}
         style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}
       >
-        Download {isPassportMode ? 'Passport Photo' : 'Cropped Image'}
+        Download {isPassportMode ? 'Passport Photo' : (is4x6Mode ? '4x6 Photo' : 'Cropped Image')}
       </button>
       {previewImage && (
         <div style={{ marginTop: '20px' }}>
@@ -226,7 +254,6 @@ const ImageResizer = () => {
           <img src={previewImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '300px' }} />
         </div>
       )}
-
     </div>
   );
 };
