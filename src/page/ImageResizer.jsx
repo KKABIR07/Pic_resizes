@@ -18,7 +18,8 @@ const ImageResizer = () => {
   const PASSPORT_PIXELS = 600; // 2x2 inch at 300 DPI
 
   const FOUR_BY_SIX_ASPECT_RATIO = 2 / 3; // 4x6 inch aspect ratio (2:3)
-  const FOUR_BY_SIX_PIXELS = 1200; // 4x6 inch at 300 DPI width, height will be calculated based on aspect ratio
+  const FOUR_BY_SIX_PIXELS_WIDTH = 1200; // 4x6 inch at 300 DPI width
+  const FOUR_BY_SIX_PIXELS_HEIGHT = 1800; // 4x6 inch at 300 DPI height
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -53,8 +54,8 @@ const ImageResizer = () => {
       canvas.width = PASSPORT_PIXELS;
       canvas.height = PASSPORT_PIXELS;
     } else if (is4x6Mode) {
-      canvas.width = FOUR_BY_SIX_PIXELS;
-      canvas.height = Math.floor(FOUR_BY_SIX_PIXELS * FOUR_BY_SIX_ASPECT_RATIO);
+      canvas.width = FOUR_BY_SIX_PIXELS_WIDTH;
+      canvas.height = FOUR_BY_SIX_PIXELS_HEIGHT;
     } else {
       canvas.width = pixelCrop.width;
       canvas.height = pixelCrop.height;
@@ -101,7 +102,7 @@ const ImageResizer = () => {
         Math.abs(g - bgColor.g) < threshold &&
         Math.abs(b - bgColor.b) < threshold
       ) {
-        data[i + 3] = 0;
+        data[i + 3] = 0; // Set alpha to 0 (transparent)
       }
     }
 
@@ -113,7 +114,7 @@ const ImageResizer = () => {
     if (src && croppedAreaPixels) {
       try {
         let canvas = await getCroppedImg(src, croppedAreaPixels, useWhiteBackground ? 'white' : 'transparent');
-
+        
         if (removeBackground) {
           canvas = removeImageBackground(canvas);
         }
@@ -131,7 +132,11 @@ const ImageResizer = () => {
     if (processedImageUrl) {
       const link = document.createElement('a');
       link.href = processedImageUrl;
-      link.download = isPassportMode ? 'passport-photo.png' : (is4x6Mode ? '4x6-photo.png' : 'cropped-image.png');
+      link.download = isPassportMode
+        ? 'passport-photo.png'
+        : is4x6Mode
+        ? '4x6-photo.png'
+        : 'cropped-image.png';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -143,7 +148,7 @@ const ImageResizer = () => {
     if (previewUrl) {
       setPreviewImage(previewUrl);
     }
-  }, [src, croppedAreaPixels, useWhiteBackground, removeBackground]);
+  }, [src, croppedAreaPixels, useWhiteBackground, removeBackground, is4x6Mode, isPassportMode]);
 
   useEffect(() => {
     updatePreview();
@@ -168,10 +173,19 @@ const ImageResizer = () => {
   return (
     <div className="image-resizer">
       <div className="mkb">
-        <h1>M.KABIR pic resizer</h1>
+        <h1>M.KABIR Pic Resizer</h1>
         <p>"Please don't use the remove background and white background features because they are still in the development stage. You may use them, but they don't work properly."</p>
       </div>
-      <input className='mkb2 custom-file-upload' type="file" accept="image/*" onChange={handleImageChange} />
+      <label htmlFor="file-upload" className="custom-file-upload">
+        Choose File
+      </label>
+      <input
+        id="file-upload"
+        type="file"
+        accept="image/*"
+        className="custom-file-input"
+        onChange={handleImageChange}
+      />
       {src && (
         <div style={{ marginTop: '20px', position: 'relative', height: '400px', width: '100%' }}>
           <Cropper
@@ -242,16 +256,13 @@ const ImageResizer = () => {
           Use White Background
         </label>
       </div>
-      <button
-        onClick={handleDownload}
-        style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}
-      >
-        Download {isPassportMode ? 'Passport Photo' : (is4x6Mode ? '4x6 Photo' : 'Cropped Image')}
-      </button>
+      <div style={{ marginTop: '20px' }}>
+        <button onClick={handleDownload}>Download Image</button>
+      </div>
       {previewImage && (
         <div style={{ marginTop: '20px' }}>
           <h3>Preview:</h3>
-          <img src={previewImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '300px' }} />
+          <img src={previewImage} alt="Preview" style={{ maxWidth: '100%' }} />
         </div>
       )}
     </div>
