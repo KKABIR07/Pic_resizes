@@ -1,0 +1,120 @@
+body{
+  background-color: rgba(0, 0, 0, 0.635);
+}
+.image-resizer {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}
+
+.image-resizer input[type="file"] {
+  margin-bottom: 20px;
+}
+
+.image-resizer .cropper-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.image-resizer .cropper-container img {
+  width: 100%;
+  height: 100%;
+}
+
+.image-resizer label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.image-resizer input[type="range"] {
+  width: 100%;
+}
+
+.image-resizer button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 10px;
+  transition: background-color 0.3s;
+}
+
+.image-resizer button:hover {
+  background-color: #0056b3;
+}
+
+.image-resizer .checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.image-resizer .checkbox-container input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.image-resizer .preview-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.image-resizer .preview-container img {
+  max-width: 100%;
+  max-height: 300px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.image-resizer .aspect-buttons {
+  margin-top: 20px;
+}
+
+.image-resizer .aspect-buttons button {
+  margin-right: 10px;
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.image-resizer .aspect-buttons button:hover {
+  background-color: #e2e6ea;
+}
+.custom-file-upload {
+  border: 1px solid #ddd;
+  display: inline-block;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+  font-size: 16px;
+  text-align: center;
+  transition: background-color 0.3s;
+}
+
+.custom-file-upload:hover {
+  background-color: #0056b3;
+}
+
+.custom-file-input {
+  display: none;
+}
+.mkb p{
+  color: red;
+}
