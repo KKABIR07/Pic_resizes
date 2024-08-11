@@ -10,6 +10,7 @@ const ImageResizer = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isPassportMode, setIsPassportMode] = useState(false);
   const [is4x6Mode, setIs4x6Mode] = useState(false);
+  const [fill4x6With2x2, setFill4x6With2x2] = useState(false);
   const [removeBackground, setRemoveBackground] = useState(false);
   const [useWhiteBackground, setUseWhiteBackground] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
@@ -20,6 +21,8 @@ const ImageResizer = () => {
   const FOUR_BY_SIX_ASPECT_RATIO = 2 / 3; // 4x6 inch aspect ratio (2:3)
   const FOUR_BY_SIX_PIXELS_WIDTH = 1200; // 4x6 inch at 300 DPI width
   const FOUR_BY_SIX_PIXELS_HEIGHT = 1800; // 4x6 inch at 300 DPI height
+
+  const TWO_BY_TWO_PIXELS = 600; // 2x2 inch at 300 DPI
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -56,6 +59,26 @@ const ImageResizer = () => {
     } else if (is4x6Mode) {
       canvas.width = FOUR_BY_SIX_PIXELS_WIDTH;
       canvas.height = FOUR_BY_SIX_PIXELS_HEIGHT;
+      if (fill4x6With2x2) {
+        const numCols = Math.floor(FOUR_BY_SIX_PIXELS_WIDTH / TWO_BY_TWO_PIXELS);
+        const numRows = Math.floor(FOUR_BY_SIX_PIXELS_HEIGHT / TWO_BY_TWO_PIXELS);
+        for (let row = 0; row < numRows; row++) {
+          for (let col = 0; col < numCols; col++) {
+            ctx.drawImage(
+              image,
+              pixelCrop.x,
+              pixelCrop.y,
+              pixelCrop.width,
+              pixelCrop.height,
+              col * TWO_BY_TWO_PIXELS,
+              row * TWO_BY_TWO_PIXELS,
+              TWO_BY_TWO_PIXELS,
+              TWO_BY_TWO_PIXELS
+            );
+          }
+        }
+        return canvas;
+      }
     } else {
       canvas.width = pixelCrop.width;
       canvas.height = pixelCrop.height;
@@ -148,7 +171,7 @@ const ImageResizer = () => {
     if (previewUrl) {
       setPreviewImage(previewUrl);
     }
-  }, [src, croppedAreaPixels, useWhiteBackground, removeBackground, is4x6Mode, isPassportMode]);
+  }, [src, croppedAreaPixels, useWhiteBackground, removeBackground, is4x6Mode, isPassportMode, fill4x6With2x2]);
 
   useEffect(() => {
     updatePreview();
@@ -236,6 +259,18 @@ const ImageResizer = () => {
           4x6 Photo Mode
         </label>
       </div>
+      {is4x6Mode && (
+        <div style={{ marginTop: '20px' }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={fill4x6With2x2}
+              onChange={(e) => setFill4x6With2x2(e.target.checked)}
+            />
+            Fill 4x6 with multiple 2x2 images
+          </label>
+        </div>
+      )}
       <div style={{ marginTop: '20px' }}>
         <label>
           <input
