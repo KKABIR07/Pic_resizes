@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
+import { MdOutlineCompress } from "react-icons/md";
+import { FaUndo } from "react-icons/fa";
 
 const ImageResizer = () => {
   const [src, setSrc] = useState(null);
@@ -266,7 +268,7 @@ const ImageResizer = () => {
             checked={enableCompression}
             onChange={() => setEnableCompression(!enableCompression)}
           />
-          Enable Compression
+          <MdOutlineCompress /> Enable Compression
         </label>
         <label>
           <input
@@ -274,7 +276,7 @@ const ImageResizer = () => {
             checked={uncut}
             onChange={() => setUncut(!uncut)}
           />
-          Uncut (Disable Cropping)
+          <FaUndo /> Uncut (Disable Cropping)
         </label>
       </div>
       <div>
