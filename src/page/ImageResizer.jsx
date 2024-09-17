@@ -13,6 +13,8 @@ const ImageResizer = () => {
   const [fill4x6With2x2, setFill4x6With2x2] = useState(false);
   const [removeBackground, setRemoveBackground] = useState(false);
   const [useWhiteBackground, setUseWhiteBackground] = useState(false);
+  const [enableCompression, setEnableCompression] = useState(false);
+  const [uncut, setUncut] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
   const PASSPORT_ASPECT_RATIO = 1; // 2x2 inch aspect ratio (1:1)
@@ -52,6 +54,14 @@ const ImageResizer = () => {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
+
+    // If uncut is selected, skip cropping and use the entire image
+    if (uncut) {
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
+      return canvas;
+    }
 
     if (isPassportMode) {
       canvas.width = PASSPORT_PIXELS;
@@ -102,44 +112,17 @@ const ImageResizer = () => {
     return canvas;
   };
 
-  const removeImageBackground = (canvas) => {
-    const ctx = canvas.getContext('2d');
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    const bgColor = {
-      r: data[0],
-      g: data[1],
-      b: data[2],
-    };
-
-    const threshold = 30;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      if (
-        Math.abs(r - bgColor.r) < threshold &&
-        Math.abs(g - bgColor.g) < threshold &&
-        Math.abs(b - bgColor.b) < threshold
-      ) {
-        data[i + 3] = 0; // Set alpha to 0 (transparent)
-      }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    return canvas;
-  };
-
   const processImage = async () => {
-    if (src && croppedAreaPixels) {
+    if (src && (croppedAreaPixels || uncut)) {
       try {
         let canvas = await getCroppedImg(src, croppedAreaPixels, useWhiteBackground ? 'white' : 'transparent');
         
         if (removeBackground) {
           canvas = removeImageBackground(canvas);
+        }
+
+        if (enableCompression) {
+          return canvas.toDataURL('image/jpeg', 0.5); // Compress to JPEG with 50% quality
         }
 
         return canvas.toDataURL('image/png');
@@ -171,7 +154,7 @@ const ImageResizer = () => {
     if (previewUrl) {
       setPreviewImage(previewUrl);
     }
-  }, [src, croppedAreaPixels, useWhiteBackground, removeBackground, is4x6Mode, isPassportMode, fill4x6With2x2]);
+  }, [src, croppedAreaPixels, useWhiteBackground, removeBackground, is4x6Mode, isPassportMode, fill4x6With2x2, enableCompression, uncut]);
 
   useEffect(() => {
     updatePreview();
@@ -248,56 +231,59 @@ const ImageResizer = () => {
           />
           US Passport Photo Mode (2x2 inches)
         </label>
-      </div>
-      <div style={{ marginTop: '20px' }}>
+        <label>
+          <input type="checkbox" checked={is4x6Mode} onChange={toggle4x6Mode} />
+          4x6 Mode (1200x1800 pixels)
+        </label>
         <label>
           <input
             type="checkbox"
-            checked={is4x6Mode}
-            onChange={toggle4x6Mode}
+            checked={fill4x6With2x2}
+            onChange={() => setFill4x6With2x2(!fill4x6With2x2)}
+            disabled={!is4x6Mode}
           />
-          4x6 Photo Mode
+          Fill 4x6 with 2x2 photos
         </label>
-      </div>
-      {is4x6Mode && (
-        <div style={{ marginTop: '20px' }}>
-          <label>
-            <input
-              type="checkbox"
-              checked={fill4x6With2x2}
-              onChange={(e) => setFill4x6With2x2(e.target.checked)}
-            />
-            Fill 4x6 with multiple 2x2 images
-          </label>
-        </div>
-      )}
-      <div style={{ marginTop: '20px' }}>
         <label>
           <input
             type="checkbox"
             checked={removeBackground}
-            onChange={(e) => setRemoveBackground(e.target.checked)}
+            onChange={() => setRemoveBackground(!removeBackground)}
           />
-          Remove Background
+          Remove Background (In Development)
         </label>
-      </div>
-      <div style={{ marginTop: '20px' }}>
         <label>
           <input
             type="checkbox"
             checked={useWhiteBackground}
-            onChange={(e) => setUseWhiteBackground(e.target.checked)}
+            onChange={() => setUseWhiteBackground(!useWhiteBackground)}
           />
           Use White Background
         </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={enableCompression}
+            onChange={() => setEnableCompression(!enableCompression)}
+          />
+          Enable Compression
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={uncut}
+            onChange={() => setUncut(!uncut)}
+          />
+          Uncut (Disable Cropping)
+        </label>
       </div>
-      <div style={{ marginTop: '20px' }}>
-        <button onClick={handleDownload}>Download Image</button>
+      <div>
+        <button onClick={handleDownload}>Download</button>
       </div>
       {previewImage && (
         <div style={{ marginTop: '20px' }}>
           <h3>Preview:</h3>
-          <img src={previewImage} alt="Preview" style={{ maxWidth: '100%' }} />
+          <img src={previewImage} alt="Cropped" style={{ maxWidth: '100%' }} />
         </div>
       )}
     </div>
