@@ -3,6 +3,7 @@ import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import { MdOutlineCompress } from "react-icons/md";
 import { FaUndo } from "react-icons/fa";
+import { NavLink } from 'react-router-dom';
 
 const ImageResizer = () => {
   const [src, setSrc] = useState(null);
@@ -281,6 +282,7 @@ const ImageResizer = () => {
       </div>
       <div>
         <button onClick={handleDownload}>Download</button>
+        <NavLink to={'/file'}>File Transfer</NavLink>
       </div>
       {previewImage && (
         <div style={{ marginTop: '20px' }}>
