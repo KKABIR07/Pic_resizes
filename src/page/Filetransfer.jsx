@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 // Helper function to generate a unique code (UUID)
 const generateUniqueCode = () => {
@@ -14,12 +14,18 @@ const FileTransfer = () => {
   const [status, setStatus] = useState('');
   const [peerConnected, setPeerConnected] = useState(false);
   const [uniqueCode, setUniqueCode] = useState('');
-  const [offerStorage, setOfferStorage] = useState({});
   const peerConnection = useRef(null);
   const dataChannel = useRef(null);
   const receivedBuffers = useRef([]);
 
-  const fileInputRef = useRef(null);
+  // Load offer storage from localStorage on component mount
+  useEffect(() => {
+    const storedOffers = localStorage.getItem('offerStorage');
+    if (storedOffers) {
+      const offers = JSON.parse(storedOffers);
+      // You could set this to state if needed
+    }
+  }, []);
 
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
@@ -39,14 +45,18 @@ const FileTransfer = () => {
     
     // Generate a unique code and store the offer
     const code = generateUniqueCode();
-    setOfferStorage((prev) => ({ ...prev, [code]: offer }));
+    const offerStorage = JSON.parse(localStorage.getItem('offerStorage')) || {};
+    offerStorage[code] = offer;
+    localStorage.setItem('offerStorage', JSON.stringify(offerStorage));
+    
     setUniqueCode(code);
     setStatus(`Offer created. Share this unique code: ${code}`);
-    console.log('Offer: ', JSON.stringify(offer)); // Log offer to share
+    console.log('Offer: ', JSON.stringify(offer));
   };
 
   // Handle retrieving offer using the unique code (Receiver)
   const handleReceiveOffer = (code) => {
+    const offerStorage = JSON.parse(localStorage.getItem('offerStorage')) || {};
     const offer = offerStorage[code];
     if (offer) {
       peerConnection.current = new RTCPeerConnection();
@@ -133,7 +143,7 @@ const FileTransfer = () => {
       {/* Sender */}
       <div>
         <h3>Sender</h3>
-        <input ref={fileInputRef} type="file" onChange={handleFileChange} />
+        <input type="file" onChange={handleFileChange} />
         <button onClick={createOffer}>Create Offer</button>
         <button onClick={sendFile} disabled={!peerConnected}>Send File</button>
       </div>
