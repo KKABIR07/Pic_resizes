@@ -1,51 +1,75 @@
 import React, { useState, useRef } from 'react';
 
+// Helper function to generate a unique code (UUID)
+const generateUniqueCode = () => {
+  return 'xxxx-xxxx-4xxx-yxxx-xxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 const FileTransfer = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [status, setStatus] = useState('');
   const [peerConnected, setPeerConnected] = useState(false);
+  const [uniqueCode, setUniqueCode] = useState('');
+  const [offerStorage, setOfferStorage] = useState({});
   const peerConnection = useRef(null);
   const dataChannel = useRef(null);
+  const receivedBuffers = useRef([]);
 
   const fileInputRef = useRef(null);
 
-  // Handle file selection for Sender
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
   };
 
-  // Initialize the WebRTC connection and create an offer
+  // Initialize the WebRTC connection and create an offer (Sender)
   const createOffer = async () => {
     peerConnection.current = new RTCPeerConnection();
     dataChannel.current = peerConnection.current.createDataChannel('fileTransfer');
 
     dataChannel.current.onopen = () => setStatus('Connection open. Ready to send file.');
     dataChannel.current.onclose = () => setStatus('Connection closed.');
-    dataChannel.current.onmessage = (event) => downloadFile(event.data);
+    dataChannel.current.onmessage = handleReceiveMessage;
 
     const offer = await peerConnection.current.createOffer();
     await peerConnection.current.setLocalDescription(offer);
-    setStatus('Offer created. Share this offer with the receiver.');
-    // Display the offer to share with the receiver
-    console.log('Offer: ', JSON.stringify(offer));
+    
+    // Generate a unique code and store the offer
+    const code = generateUniqueCode();
+    setOfferStorage((prev) => ({ ...prev, [code]: offer }));
+    setUniqueCode(code);
+    setStatus(`Offer created. Share this unique code: ${code}`);
+    console.log('Offer: ', JSON.stringify(offer)); // Log offer to share
   };
 
-  // Handle the receiver button by accepting the offer and creating an answer
-  const handleReceiveOffer = async (offer) => {
-    peerConnection.current = new RTCPeerConnection();
+  // Handle retrieving offer using the unique code (Receiver)
+  const handleReceiveOffer = (code) => {
+    const offer = offerStorage[code];
+    if (offer) {
+      peerConnection.current = new RTCPeerConnection();
 
-    peerConnection.current.ondatachannel = (event) => {
-      dataChannel.current = event.channel;
-      dataChannel.current.onmessage = (event) => downloadFile(event.data);
-      setPeerConnected(true);
-      setStatus('Connected. Receiving file...');
-    };
+      peerConnection.current.ondatachannel = (event) => {
+        dataChannel.current = event.channel;
+        dataChannel.current.onmessage = handleReceiveMessage;
+        setPeerConnected(true);
+        setStatus('Connected. Ready to receive file...');
+      };
 
-    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
+      peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
+      createAnswer();
+    } else {
+      setStatus('Invalid unique code. Please try again.');
+    }
+  };
+
+  // Create and send the answer
+  const createAnswer = async () => {
     const answer = await peerConnection.current.createAnswer();
     await peerConnection.current.setLocalDescription(answer);
-    setStatus('Answer created. Send this answer back to the sender.');
-    // Display the answer to share with the sender
+    setStatus('Answer created. Share this answer with the sender.');
     console.log('Answer: ', JSON.stringify(answer));
   };
 
@@ -59,17 +83,40 @@ const FileTransfer = () => {
   // Send the selected file over the data channel
   const sendFile = () => {
     if (!selectedFile || !dataChannel.current) return;
+    
+    const chunkSize = 16384; // 16KB chunks
     const reader = new FileReader();
-    reader.onload = () => {
-      dataChannel.current.send(reader.result);
+    let offset = 0;
+
+    reader.onload = (e) => {
+      const fileChunk = e.target.result;
+
+      while (offset < fileChunk.byteLength) {
+        const chunk = fileChunk.slice(offset, offset + chunkSize);
+        dataChannel.current.send(chunk);
+        offset += chunkSize;
+      }
+
       setStatus('File sent successfully!');
     };
+
     reader.readAsArrayBuffer(selectedFile);
   };
 
+  // Handle receiving file chunks and reassembling them
+  const handleReceiveMessage = (event) => {
+    receivedBuffers.current.push(event.data);
+    setStatus('Receiving file...');
+
+    if (dataChannel.current.readyState === 'closed' || event.data.byteLength === 0) {
+      setStatus('File transfer complete!');
+      downloadFile(receivedBuffers.current);
+    }
+  };
+
   // Download the received file
-  const downloadFile = (file) => {
-    const blob = new Blob([file]);
+  const downloadFile = (fileChunks) => {
+    const blob = new Blob(fileChunks);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = selectedFile ? selectedFile.name : 'received_file';
@@ -82,7 +129,7 @@ const FileTransfer = () => {
   return (
     <div style={{ textAlign: 'center', marginTop: '50px' }}>
       <h2>Fast File Transfer (P2P)</h2>
-      
+
       {/* Sender */}
       <div>
         <h3>Sender</h3>
@@ -94,11 +141,10 @@ const FileTransfer = () => {
       {/* Receiver */}
       <div>
         <h3>Receiver</h3>
-        <textarea 
-          placeholder="Paste Offer JSON here"
-          rows="5"
-          cols="50"
-          onBlur={(e) => handleReceiveOffer(JSON.parse(e.target.value))}
+        <input 
+          type="text" 
+          placeholder="Enter Unique Code"
+          onBlur={(e) => handleReceiveOffer(e.target.value)} 
         />
         <textarea 
           placeholder="Paste Answer JSON here"
